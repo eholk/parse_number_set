@@ -1,13 +1,14 @@
 use std::collections::BTreeSet;
 
-use nom::{branch::alt, bytes::complete::tag, multi::separated_list1};
+use nom::{branch::alt, bytes::complete::tag, character::complete::space1, multi::separated_list1};
 use thiserror::Error;
 
 pub fn parse_number_set(input: &str) -> Result<Vec<usize>, ParseError<'_>> {
     let mut set = BTreeSet::new();
 
-    let (_, entries) = separated_list1(tag(","), alt((single_range, single_num)))(input)
-        .map_err(ParseError::NomError)?;
+    let (_, entries) =
+        separated_list1(alt((tag(","), space1)), alt((single_range, single_num)))(input)
+            .map_err(ParseError::NomError)?;
     for e in entries {
         match e {
             Entry::Number(n) => {
@@ -68,6 +69,13 @@ mod tests {
     #[test]
     fn numbers_and_ranges() -> anyhow::Result<()> {
         let result = parse_number_set("1,3,5..7,9,12..14")?;
+        assert_eq!(result, vec![1, 3, 5, 6, 7, 9, 12, 13, 14]);
+        Ok(())
+    }
+
+    #[test]
+    fn space_separated() -> anyhow::Result<()> {
+        let result = parse_number_set("1 3 5..7 9 12..14")?;
         assert_eq!(result, vec![1, 3, 5, 6, 7, 9, 12, 13, 14]);
         Ok(())
     }
